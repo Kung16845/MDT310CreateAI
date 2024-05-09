@@ -261,40 +261,65 @@ class MinimaxAgent(MultiAgentSearchAgent):
 #######################################################################################
 
 import heapq
+import random
 
 class YourTeamAgent(MultiAgentSearchAgent):
     def getAction(self, gameState, agentIndex=0) -> str:
-        """Use A* to find the best action towards capsules or food, avoiding walls."""
-        # Get the current position of Pacman
+        """Choose the best action, avoiding other agents or chasing them depending on their state."""
+        # Get the current position of our Pacman agent
         current_position = gameState.getPacmanPosition(agentIndex)
-        
-        # Get a list of capsules and food from the game state
+
+        # Get information about the other agent
+        other_index = (agentIndex + 1) % gameState.getNumAgents()
+        other_position = gameState.getPacmanPosition(other_index)
+        other_state = gameState.getPacmanState(other_index)
+
+        # Get capsules and food positions
         capsules = gameState.getCapsules()
         food = gameState.getFood().asList()
 
-        # Retrieve all possible legal actions for the given agent
+        # Retrieve all legal actions
         legal_actions = gameState.getLegalActions(agentIndex)
 
-        # If there are no capsules or food, fallback to a random legal action
-        if not capsules and not food:
+        # Determine whether we are in "getCapsule" mode or "find" mode
+        if capsules:
+            mode = "getCapsule"
+            targets = capsules
+        elif food:
+            mode = "getFood"
+            targets = food
+        else:
+            mode = "random"
+            targets = []
+
+        # If no valid targets exist, choose a random legal action
+        if not targets:
             return random.choice(legal_actions) if legal_actions else Directions.STOP
 
-        # Target selection: prioritize capsules first, then food
-        targets = capsules if capsules else food
+        # If targeting a capsule but the other agent is not vulnerable, avoid them
+        if mode == "getCapsule" and other_state.scaredTimer == 0:
+            path = self.a_star_search_avoid(gameState, current_position, targets, other_position)
+        else:
+            # If the other agent is vulnerable, chase them
+            if other_state.scaredTimer > 0:
+                targets = [other_position]
+                mode = "find"
 
-        # Use A* to find the best path to the nearest target
-        best_path = self.a_star_search(gameState, current_position, targets)
-        
-        if best_path:
-            return best_path[0]
+            path = self.a_star_search(gameState, current_position, targets)
+
+        if path:
+            return path[0]
         else:
             # If no path is found, choose a random legal action
             return random.choice(legal_actions) if legal_actions else Directions.STOP
 
     def a_star_search(self, gameState, start, targets):
-        """A* Search algorithm to find the best path to any of the targets."""
+        """A* Search to find the best path to any target."""
+        if not targets:
+            return None
+
         walls = gameState.getWalls()
-        
+
         def heuristic(pos, goal):
             return util.manhattanDistance(pos, goal)
 
@@ -313,7 +338,7 @@ class YourTeamAgent(MultiAgentSearchAgent):
         frontier = []
         heapq.heappush(frontier, (0, start, []))
         explored = set()
-        
+
         while frontier:
             cost, current, path = heapq.heappop(frontier)
 
@@ -321,46 +346,57 @@ class YourTeamAgent(MultiAgentSearchAgent):
                 continue
             explored.add(current)
 
-            # If the current node is a target, return the path
             if current in targets:
                 return path
 
-            # Expand neighbors
             for direction, neighbor in neighbors(current):
                 new_cost = cost + 1 + min([heuristic(neighbor, target) for target in targets])
                 heapq.heappush(frontier, (new_cost, neighbor, path + [direction]))
 
         return None
 
-    def evaluationFunction(self, currentGameState, action, agentIndex=0) -> float:
-        """Evaluate state value based on proximity to capsules, food, and avoiding other agents."""
-        # Generate the successor state after taking the action
-        successor = currentGameState.generateSuccessor(agentIndex, action)
+    def a_star_search_avoid(self, gameState, start, targets, avoid_pos):
+        """A* Search to find the best path to any target, avoiding a specific position."""
+        if not targets:
+            return None
 
-        if successor is None:
-            return float('-inf')
+        walls = gameState.getWalls()
 
-        # Retrieve the new Pacman position
-        new_position = successor.getPacmanPosition(agentIndex)
+        def heuristic(pos, goal):
+            return util.manhattanDistance(pos, goal)
 
-        # Compute the distances to the nearest food and capsules
-        food = successor.getFood()
-        capsules = successor.getCapsules()
-        ghost_states = successor.getGhostStates()
-        ghost_positions = [ghost.getPosition() for ghost in ghost_states]
+        def neighbors(pos):
+            x, y = pos
+            possible_directions = [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]
+            deltas = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+            neighbors = []
 
-        # Find the nearest food and capsule distances
-        nearest_food_distance = min([util.manhattanDistance(new_position, food_pos) for food_pos in food.asList()] or [0])
-        nearest_capsule_distance = min([util.manhattanDistance(new_position, capsule) for capsule in capsules] or [0])
-        nearest_ghost_distance = min([util.manhattanDistance(new_position, ghost) for ghost in ghost_positions] or [float('inf')])
+            for direction, (dx, dy) in zip(possible_directions, deltas):
+                new_x, new_y = x + dx, y + dy
+                if 0 <= new_x < walls.width and 0 <= new_y < walls.height and not walls[new_x][new_y]:
+                    if (new_x, new_y) != avoid_pos:
+                        neighbors.append((direction, (new_x, new_y)))
+            return neighbors
 
-        # Calculate the evaluation score
-        score = successor.getScore(agentIndex)
-        score += 10.0 / (nearest_food_distance + 1)  # Closer food is better
-        score += 20.0 / (nearest_capsule_distance + 1)  # Closer capsules are better
-        score -= 10.0 / (nearest_ghost_distance + 1)  # Avoid getting too close to ghosts
+        frontier = []
+        heapq.heappush(frontier, (0, start, []))
+        explored = set()
 
-        return score
+        while frontier:
+            cost, current, path = heapq.heappop(frontier)
+
+            if current in explored:
+                continue
+            explored.add(current)
+
+            if current in targets:
+                return path
+
+            for direction, neighbor in neighbors(current):
+                new_cost = cost + 1 + min([heuristic(neighbor, target) for target in targets])
+                heapq.heappush(frontier, (new_cost, neighbor, path + [direction]))
+
+        return None
 
 
 
