@@ -243,18 +243,98 @@ class MinimaxAgent(MultiAgentSearchAgent):
     return successorGameState.getScore()
 
 ######################################################################################
-class YourTeamAgent(MultiAgentSearchAgent):
-  """
-    Your team agent
-    แก้ เพิ่มเติม ได้ใน class นี้เท่านั้น
-    แต่ห้ามแก้ชื่อ class หรือ method ที่กำหนดให้
-    แต่เพิ่ม method เองได้ และเรียกใช้ได้ใน method ใน class นี้
-  """
-  def getAction(self, gameState: GameState,agentIndex = 0) -> str:
-    pass
-    # ต้อง return action ที่ดีที่สุดด้วยนะ
-    #  return bestAction
+# class YourTeamAgent(MultiAgentSearchAgent):
+#   """
+#     Your team agent
+#     แก้ เพิ่มเติม ได้ใน class นี้เท่านั้น
+#     แต่ห้ามแก้ชื่อ class หรือ method ที่กำหนดให้
+#     แต่เพิ่ม method เองได้ และเรียกใช้ได้ใน method ใน class นี้
+#   """
+#   def getAction(self, gameState: GameState,agentIndex = 0) -> str:
+#     pass
+#     # ต้อง return action ที่ดีที่สุดด้วยนะ
+#     #  return bestAction
 
-  def evaluationFunction(self, currentGameState: GameState, action: str,agentIndex=0) -> float:
-    # อาจจะไม่ใช้ก็ได้ แต่ถ้าจะใช้ ให้ return ค่าที่ดีที่สุด
-    pass
+#   def evaluationFunction(self, currentGameState: GameState, action: str,agentIndex=0) -> float:
+#     # อาจจะไม่ใช้ก็ได้ แต่ถ้าจะใช้ ให้ return ค่าที่ดีที่สุด
+#     pass
+#######################################################################################
+
+
+class YourTeamAgent(MultiAgentSearchAgent):
+    def getAction(self, gameState, agentIndex=0) -> str:
+        """Choose the best action based on capsules, food, and random walking."""
+        # Retrieve the list of capsule locations and food from the game state
+        capsules = gameState.getCapsules()
+        food = gameState.getFood().asList()
+
+        # Retrieve all possible legal actions for the given agent
+        legal_actions = gameState.getLegalActions(agentIndex)
+
+        # Initialize variables to hold the best path and cost
+        best_action = Directions.STOP
+        best_distance = float('inf')
+
+        # Prioritize targets: capsules > food > random movement
+        if capsules:
+            targets = capsules
+        elif food:
+            targets = food
+        else:
+            # No capsules or food, so choose a random action among legal moves
+            return random.choice(legal_actions) if legal_actions else Directions.STOP
+
+        # Find the best action that brings Pacman closer to the nearest target
+        for action in legal_actions:
+            # Get the successor state after taking the action
+            successor = gameState.generateSuccessor(agentIndex, action)
+
+            if successor is None:
+                continue
+
+            # Determine the position after the move
+            next_position = successor.getPacmanPosition(agentIndex)
+
+            # Find the nearest target distance from the new position
+            nearest_target_distance = min([util.manhattanDistance(next_position, target) for target in targets])
+
+            # Update the best action if the current one is closer to a target
+            if nearest_target_distance < best_distance:
+                best_distance = nearest_target_distance
+                best_action = action
+
+        return best_action
+
+    def evaluationFunction(self, currentGameState, action, agentIndex=0) -> float:
+        """Evaluate state value based on proximity to capsules, food, and avoiding other agents."""
+        # Generate the successor state after taking the action
+        successor = currentGameState.generateSuccessor(agentIndex, action)
+
+        if successor is None:
+            return float('-inf')
+
+        # Retrieve the new Pacman position
+        new_position = successor.getPacmanPosition(agentIndex)
+
+        # Compute the distances to the nearest food and capsules
+        food = successor.getFood()
+        capsules = successor.getCapsules()
+        ghost_states = successor.getGhostStates()
+        ghost_positions = [ghost.getPosition() for ghost in ghost_states]
+
+        # Find the nearest food and capsule distances
+        nearest_food_distance = min([util.manhattanDistance(new_position, food_pos) for food_pos in food.asList()] or [0])
+        nearest_capsule_distance = min([util.manhattanDistance(new_position, capsule) for capsule in capsules] or [0])
+        nearest_ghost_distance = min([util.manhattanDistance(new_position, ghost) for ghost in ghost_positions] or [float('inf')])
+
+        # Calculate the evaluation score
+        score = successor.getScore(agentIndex)
+        score += 10.0 / (nearest_food_distance + 1)  # Closer food is better
+        score += 20.0 / (nearest_capsule_distance + 1)  # Closer capsules are better
+        score -= 10.0 / (nearest_ghost_distance + 1)  # Avoid getting too close to ghosts
+
+        return score
+
+
+
+
