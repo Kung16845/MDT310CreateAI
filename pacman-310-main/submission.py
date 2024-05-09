@@ -297,14 +297,19 @@ class YourTeamAgent(MultiAgentSearchAgent):
             return random.choice(legal_actions) if legal_actions else Directions.STOP
 
         # If targeting a capsule but the other agent is not vulnerable, avoid them
-        if mode == "getCapsule" and other_state.scaredTimer == 0:
-            path = self.a_star_search_avoid(gameState, current_position, targets, other_position)
-        else:
-            # If the other agent is vulnerable, chase them
-            if other_state.scaredTimer > 0:
+        if mode == "getCapsule":
+            if other_state.scaredTimer == 0:
+                # If the other agent is not scared, avoid it
+                path = self.a_star_search_avoid(gameState, current_position, targets, other_position)
+            elif other_state.scaredTimer > gameState.getPacmanState(agentIndex).scaredTimer:
+                # If the other agent has more time left in its scared state, chase it
                 targets = [other_position]
                 mode = "find"
-
+                path = self.a_star_search(gameState, current_position, targets)
+            else:
+                # If our agent has more time left in its scared state, run away from the other agent
+                path = self.a_star_search_avoid(gameState, current_position, targets, other_position)
+        else:
             path = self.a_star_search(gameState, current_position, targets)
 
         if path:
