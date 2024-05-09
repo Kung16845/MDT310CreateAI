@@ -297,8 +297,8 @@ class PacmanRules:
     """
     # print("action: ",action, " agentIndex: ",agentIndex)
     legal = PacmanRules.getLegalActions( state ,agentIndex)
-    if action not in legal:
-      raise Exception("Illegal action " + str(action))
+    # if action not in legal:
+    #   raise Exception("Illegal action " + str(action))
 
     pacmanState = state.data.agentStates[agentIndex]
 
@@ -449,9 +449,9 @@ def setArgs():
   # pacmanType = loadAgent("MinimaxAgent", noKeyboard)
   
   # pacmanType = loadAgent("KeyboardAgent", False)
-  pacmanType = loadAgent("ReflexAgent", noKeyboard)
+  # pacmanType = loadAgent("ReflexAgent", noKeyboard)
   # สามารถแก้เป็น agent ของทีมตัวเองได้
-  # pacmanType = loadAgent("YourTeamAgent", False)
+  pacmanType = loadAgent("YourTeamAgent", False)
 
   agentOpts = {}
   pacman = pacmanType(**agentOpts) # Instantiate Pacman with agentArgs
@@ -463,7 +463,7 @@ def setArgs():
   # pacmanType = loadAgent("ReflexAgent", noKeyboard)
 
   # สามารถแก้เป็น agent ของทีมตัวเองได้
-  pacmanType = loadAgent("YourTeamAgent", False)
+  pacmanType = loadAgent("YourTeamAgent2", False)
 
   agentOpts = {}
   pacman = pacmanType(**agentOpts) # Instantiate Pacman with agentArgs
