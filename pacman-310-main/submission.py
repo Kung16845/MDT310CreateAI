@@ -260,50 +260,77 @@ class MinimaxAgent(MultiAgentSearchAgent):
 #     pass
 #######################################################################################
 
+import heapq
 
 class YourTeamAgent(MultiAgentSearchAgent):
     def getAction(self, gameState, agentIndex=0) -> str:
-        """Choose the best action based on capsules, food, and random walking."""
-        # Retrieve the list of capsule locations and food from the game state
+        """Use A* to find the best action towards capsules or food, avoiding walls."""
+        # Get the current position of Pacman
+        current_position = gameState.getPacmanPosition(agentIndex)
+        
+        # Get a list of capsules and food from the game state
         capsules = gameState.getCapsules()
         food = gameState.getFood().asList()
 
         # Retrieve all possible legal actions for the given agent
         legal_actions = gameState.getLegalActions(agentIndex)
 
-        # Initialize variables to hold the best path and cost
-        best_action = Directions.STOP
-        best_distance = float('inf')
-
-        # Prioritize targets: capsules > food > random movement
-        if capsules:
-            targets = capsules
-        elif food:
-            targets = food
-        else:
-            # No capsules or food, so choose a random action among legal moves
+        # If there are no capsules or food, fallback to a random legal action
+        if not capsules and not food:
             return random.choice(legal_actions) if legal_actions else Directions.STOP
 
-        # Find the best action that brings Pacman closer to the nearest target
-        for action in legal_actions:
-            # Get the successor state after taking the action
-            successor = gameState.generateSuccessor(agentIndex, action)
+        # Target selection: prioritize capsules first, then food
+        targets = capsules if capsules else food
 
-            if successor is None:
+        # Use A* to find the best path to the nearest target
+        best_path = self.a_star_search(gameState, current_position, targets)
+        
+        if best_path:
+            return best_path[0]
+        else:
+            # If no path is found, choose a random legal action
+            return random.choice(legal_actions) if legal_actions else Directions.STOP
+
+    def a_star_search(self, gameState, start, targets):
+        """A* Search algorithm to find the best path to any of the targets."""
+        walls = gameState.getWalls()
+        
+        def heuristic(pos, goal):
+            return util.manhattanDistance(pos, goal)
+
+        def neighbors(pos):
+            x, y = pos
+            possible_directions = [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]
+            deltas = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+            neighbors = []
+
+            for direction, (dx, dy) in zip(possible_directions, deltas):
+                new_x, new_y = x + dx, y + dy
+                if 0 <= new_x < walls.width and 0 <= new_y < walls.height and not walls[new_x][new_y]:
+                    neighbors.append((direction, (new_x, new_y)))
+            return neighbors
+
+        frontier = []
+        heapq.heappush(frontier, (0, start, []))
+        explored = set()
+        
+        while frontier:
+            cost, current, path = heapq.heappop(frontier)
+
+            if current in explored:
                 continue
+            explored.add(current)
 
-            # Determine the position after the move
-            next_position = successor.getPacmanPosition(agentIndex)
+            # If the current node is a target, return the path
+            if current in targets:
+                return path
 
-            # Find the nearest target distance from the new position
-            nearest_target_distance = min([util.manhattanDistance(next_position, target) for target in targets])
+            # Expand neighbors
+            for direction, neighbor in neighbors(current):
+                new_cost = cost + 1 + min([heuristic(neighbor, target) for target in targets])
+                heapq.heappush(frontier, (new_cost, neighbor, path + [direction]))
 
-            # Update the best action if the current one is closer to a target
-            if nearest_target_distance < best_distance:
-                best_distance = nearest_target_distance
-                best_action = action
-
-        return best_action
+        return None
 
     def evaluationFunction(self, currentGameState, action, agentIndex=0) -> float:
         """Evaluate state value based on proximity to capsules, food, and avoiding other agents."""
@@ -334,6 +361,10 @@ class YourTeamAgent(MultiAgentSearchAgent):
         score -= 10.0 / (nearest_ghost_distance + 1)  # Avoid getting too close to ghosts
 
         return score
+
+
+
+
 
 
 

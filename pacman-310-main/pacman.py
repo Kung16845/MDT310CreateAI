@@ -433,9 +433,9 @@ def checkWinner(game, rule):
 def setArgs():
   args = dict()
   # Choose a layout
-  layout1 = "open310"
+  # layout1 = "open310"
   # layout1 = "mediumClassic"
-  # layout1 = "testClassic"
+  layout1 = "testClassic"
   args['layout'] = layout.getLayout(layout1 )
   zoom = 1.0
   # ความเร็วในการเคลื่อนที่ของ pacman สามารถกำหนดได้ โดยค่ามากขึ้น จะช้าลง
@@ -452,7 +452,7 @@ def setArgs():
   
   # สามารถแก้เป็น agent ของทีมตัวเองได้
   pacmanType = loadAgent("YourTeamAgent", False)
-
+  # pacmanType = loadAgent("ReflexAgent", noKeyboard)
   agentOpts = {}
   pacman = pacmanType(**agentOpts) # Instantiate Pacman with agentArgs
   args['pacman'] = pacman
