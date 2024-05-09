@@ -297,19 +297,29 @@ class YourTeamAgent(MultiAgentSearchAgent):
             return random.choice(legal_actions) if legal_actions else Directions.STOP
 
         # If targeting a capsule but the other agent is not vulnerable, avoid them
-        if mode == "getCapsule":
-            if other_state.scaredTimer == 0:
-                # If the other agent is not scared, avoid it
-                path = self.a_star_search_avoid(gameState, current_position, targets, other_position)
-            elif other_state.scaredTimer > gameState.getPacmanState(agentIndex).scaredTimer:
-                # If the other agent has more time left in its scared state, chase it
-                targets = [other_position]
-                mode = "find"
-                path = self.a_star_search(gameState, current_position, targets)
+        if mode == "getCapsule" and other_state.scaredTimer == 0:
+            # If both agents are in "getCapsule" state
+            if other_state.scaredTimer > 0:
+                # If our agent has higher scared timer, run away while finding the closest capsule
+                if gameState.getPacmanState(agentIndex).scaredTimer > other_state.scaredTimer:
+                    path = self.a_star_search_avoid(gameState, current_position, targets, other_position)
+                else:
+                    # If the other agent has a higher scared timer, chase it only if its timer is >= 4
+                    if other_state.scaredTimer >= 6:
+                        targets = [other_position]
+                        mode = "find"
+                        path = self.a_star_search(gameState, current_position, targets)
+                    else:
+                        # If the other agent's scared timer is less than 4, avoid chasing
+                        path = self.a_star_search_avoid(gameState, current_position, targets, other_position)
             else:
-                # If our agent has more time left in its scared state, run away from the other agent
                 path = self.a_star_search_avoid(gameState, current_position, targets, other_position)
         else:
+            # If the other agent is vulnerable, chase them only if their timer is >= 4
+            if other_state.scaredTimer > 0 and other_state.scaredTimer >= 6:
+                targets = [other_position]
+                mode = "find"
+
             path = self.a_star_search(gameState, current_position, targets)
 
         if path:
@@ -402,6 +412,7 @@ class YourTeamAgent(MultiAgentSearchAgent):
                 heapq.heappush(frontier, (new_cost, neighbor, path + [direction]))
 
         return None
+
 
 
 
