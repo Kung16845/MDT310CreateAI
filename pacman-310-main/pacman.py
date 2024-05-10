@@ -433,8 +433,8 @@ def checkWinner(game, rule):
 def setArgs():
   args = dict()
   # Choose a layout
-  layout1 = "open310"
-  # layout1 = "mediumClassic"
+  # layout1 = "open310"
+  layout1 = "mediumClassic"
   # layout1 = "testClassic"
   args['layout'] = layout.getLayout(layout1 )
   zoom = 1.0
@@ -451,7 +451,7 @@ def setArgs():
   # pacmanType = loadAgent("KeyboardAgent", False)
   # pacmanType = loadAgent("ReflexAgent", noKeyboard)
   # สามารถแก้เป็น agent ของทีมตัวเองได้
-  pacmanType = loadAgent("YourTeamAgent2", False)
+  pacmanType = loadAgent("YourTeamAgent", False)
 
   agentOpts = {}
   pacman = pacmanType(**agentOpts) # Instantiate Pacman with agentArgs
@@ -463,7 +463,7 @@ def setArgs():
   # pacmanType = loadAgent("ReflexAgent", noKeyboard)
 
   # สามารถแก้เป็น agent ของทีมตัวเองได้
-  pacmanType = loadAgent("YourTeamAgent", False)
+  pacmanType = loadAgent("YourTeamAgent2", False)
 
   agentOpts = {}
   pacman = pacmanType(**agentOpts) # Instantiate Pacman with agentArgs

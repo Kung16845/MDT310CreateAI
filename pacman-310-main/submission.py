@@ -363,51 +363,53 @@ class YourTeamAgent(MultiAgentSearchAgent):
                 if distance > max_distance:
                     # Check nearby food dots within a certain radius
                     food_count = sum(1 for food_pos in food if util.manhattanDistance((x, y), food_pos) <= 3)
-                    if food_count >= 2 and distance > 5:  # Adjust the cluster and distance thresholds as needed
+                    if food_count >= 3 and distance > 6:  # Adjust the cluster and distance thresholds as needed
                         max_distance = distance
                         farthest_point = (x, y)
     return farthest_point
   def a_star_search(self, gameState, start, targets):
-        """A* Search to find the best path to any target."""
-        if not targets:
-            return None
-
-        walls = gameState.getWalls()
-
-        def heuristic(pos, goal):
-            return util.manhattanDistance(pos, goal)
-
-        def neighbors(pos):
-            x, y = pos
-            possible_directions = [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]
-            deltas = [(0, 1), (0, -1), (1, 0), (-1, 0)]
-            neighbors = []
-
-            for direction, (dx, dy) in zip(possible_directions, deltas):
-                new_x, new_y = x + dx, y + dy
-                if 0 <= new_x < walls.width and 0 <= new_y < walls.height and not walls[new_x][new_y]:
-                    neighbors.append((direction, (new_x, new_y)))
-            return neighbors
-
-        frontier = []
-        heapq.heappush(frontier, (0, start, []))
-        explored = set()
-
-        while frontier:
-            cost, current, path = heapq.heappop(frontier)
-
-            if current in explored:
-                continue
-            explored.add(current)
-
-            if current in targets:
-                return path
-
-            for direction, neighbor in neighbors(current):
-                new_cost = cost + 1 + min([heuristic(neighbor, target) for target in targets])
-                heapq.heappush(frontier, (new_cost, neighbor, path + [direction]))
-
+    """A* Search to find the best path to any target."""
+    if not targets:
         return None
+
+    walls = gameState.getWalls()
+    food = gameState.getFood().asList()
+
+    def heuristic(pos, goals):
+        # Calculate the minimum Manhattan distance to any food in the cluster
+        return min([util.manhattanDistance(pos, goal) for goal in goals])
+
+    def neighbors(pos):
+        x, y = pos
+        possible_directions = [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]
+        deltas = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+        neighbors = []
+
+        for direction, (dx, dy) in zip(possible_directions, deltas):
+            new_x, new_y = x + dx, y + dy
+            if 0 <= new_x < walls.width and 0 <= new_y < walls.height and not walls[new_x][new_y]:
+                neighbors.append((direction, (new_x, new_y)))
+        return neighbors
+
+    frontier = []
+    heapq.heappush(frontier, (0, start, []))
+    explored = set()
+
+    while frontier:
+        cost, current, path = heapq.heappop(frontier)
+
+        if current in explored:
+            continue
+        explored.add(current)
+
+        if current in targets:
+            return path
+
+        for direction, neighbor in neighbors(current):
+            new_cost = cost + 1 + heuristic(neighbor, targets)
+            heapq.heappush(frontier, (new_cost, neighbor, path + [direction]))
+
+    return None
   def other_agent_closer_to_capsule(self, gameState, agentIndex, other_index):
     """Check if the other agent is closer to the same capsule as our agent."""
     current_position = gameState.getPacmanPosition(agentIndex)
