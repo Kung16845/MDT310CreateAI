@@ -307,7 +307,7 @@ class YourTeamAgent(MultiAgentSearchAgent):
                 path = self.a_star_search_avoid(gameState, current_position, targets, other_position)
             else:
                 # If the other agent has a higher scared timer, flee away
-                if other_state.scaredTimer < 9 and other_state.scaredTimer >= 1:
+                if other_state.scaredTimer < 2 and other_state.scaredTimer >= 1 and self.other_agent_closer_to_capsule(gameState, agentIndex, other_index):
                     print("here3")
                     # Find the farthest point from the other agent
                     farthest_point = self.find_farthest_point(gameState, current_position, other_position)
@@ -349,19 +349,23 @@ class YourTeamAgent(MultiAgentSearchAgent):
         return random.choice(legal_actions) if legal_actions else Directions.STOP
 
   def find_farthest_point(self, gameState, start, other_position):
-    """Find the farthest point from the other agent."""
+    """Find the farthest point from the other agent with a minimum cluster of nearby food dots."""
     max_distance = float('-inf')
     farthest_point = None
 
     walls = gameState.getWalls()
+    food = gameState.getFood().asList()
 
     for x in range(walls.width):
         for y in range(walls.height):
             if not walls[x][y]:
                 distance = util.manhattanDistance((x, y), other_position)
                 if distance > max_distance:
-                    max_distance = distance
-                    farthest_point = (x, y)
+                    # Check nearby food dots within a certain radius
+                    food_count = sum(1 for food_pos in food if util.manhattanDistance((x, y), food_pos) <= 3)
+                    if food_count >= 2 and distance > 5:  # Adjust the cluster and distance thresholds as needed
+                        max_distance = distance
+                        farthest_point = (x, y)
     return farthest_point
   def a_star_search(self, gameState, start, targets):
         """A* Search to find the best path to any target."""
@@ -405,7 +409,7 @@ class YourTeamAgent(MultiAgentSearchAgent):
 
         return None
   def other_agent_closer_to_capsule(self, gameState, agentIndex, other_index):
-    """Check if the other agent is closer to a capsule than our agent."""
+    """Check if the other agent is closer to the same capsule as our agent."""
     current_position = gameState.getPacmanPosition(agentIndex)
     other_position = gameState.getPacmanPosition(other_index)
     capsules = gameState.getCapsules()
@@ -413,12 +417,16 @@ class YourTeamAgent(MultiAgentSearchAgent):
     if not capsules:
         return False
 
-    # Calculate distances from current positions to the nearest capsules
-    agent_distance_to_capsule = min([util.manhattanDistance(current_position, capsule) for capsule in capsules])
-    other_agent_distance_to_capsule = min([util.manhattanDistance(other_position, capsule) for capsule in capsules])
+    agent_distance_to_capsules = [util.manhattanDistance(current_position, capsule) for capsule in capsules]
+    other_agent_distance_to_capsules = [util.manhattanDistance(other_position, capsule) for capsule in capsules]
 
-    # If the other agent is closer to a capsule than our agent
-    return other_agent_distance_to_capsule < agent_distance_to_capsule
+    # Compare distances to all capsules
+    for agent_distance, other_distance in zip(agent_distance_to_capsules, other_agent_distance_to_capsules):
+        if other_distance < agent_distance:
+            return True
+
+    return False
+  
   def a_star_search_avoid(self, gameState, start, targets, avoid_pos):
         """A* Search to find the best path to any target, avoiding a specific position."""
         if not targets:
@@ -468,27 +476,34 @@ from typing import List, Tuple, Deque
 from collections import deque
 import random
 
+from util import manhattanDistance
+from game import Directions, Actions
+from pacman import GameState
+from typing import List, Tuple, Deque
+from collections import deque
+import random
+
 class YourTeamAgent2(MultiAgentSearchAgent):
     """
     Your team agent
     This class makes Pac-Man find all closest capsules and food in the game state.
     If there is no food or capsules left, it makes Pac-Man randomly walk.
     Pac-Man also avoids walls and uses BFS for pathfinding.
-    Additionally, if the enemy AI (the other Pac-Man) is scared, Pac-Man moves towards it.
+    Additionally, if Pac-Man is scared and within a close distance of the other AI, it avoids the other AI.
     """
 
     def getAction(self, gameState: GameState, agentIndex: int = 0) -> str:
         """
         Returns the best action for Pac-Man to take in the given game state to minimize the total distance to the closest capsule or food.
         If there is no food or capsules left, returns a random legal action.
-        If the enemy AI (the other Pac-Man) is scared, returns an action to move towards it.
+        If Pac-Man is scared and within a close distance of the other AI, returns an action to avoid the other AI.
 
         Args:
             gameState: The current game state.
             agentIndex: The index of the agent (0 for Pac-Man, 1 for the second agent).
 
         Returns:
-            The optimal action to take in the given game state, prioritizing moving towards the enemy AI when it is scared.
+            The optimal action to take in the given game state, prioritizing avoiding the other AI when Pac-Man is scared and close to the enemy AI.
         """
         # Get the legal actions for Pac-Man
         legalActions = gameState.getLegalActions(agentIndex)
@@ -507,10 +522,16 @@ class YourTeamAgent2(MultiAgentSearchAgent):
         enemyPosition = gameState.getPacmanPosition(enemyAgentIndex)
         enemyScaredTimes = enemyAI.scaredTimer
 
-        # Check if the enemy AI is scared
-        if enemyScaredTimes > 0:
-            # If the enemy AI is scared, prioritize moving towards it
-            return self.findBestActionToTarget(gameState, agentIndex, pacmanPosition, enemyPosition)
+        # Get the scared times for our AI
+        scaredTimes = gameState.getScaredTimes(agentIndex)
+
+        # Calculate the distance from Pac-Man to the other AI
+        distanceToEnemyAI = manhattanDistance(pacmanPosition, enemyPosition)
+
+        # Check if our AI is scared and the distance to the other AI is less than 3
+        if scaredTimes > 0 and distanceToEnemyAI < 3:
+            # If our AI is scared and close to the enemy AI, avoid the other AI
+            return self.findBestActionToAvoidOtherAI(gameState, agentIndex, pacmanPosition, enemyPosition)
 
         # Check if there is no food and no capsules left
         if not capsules and not foodList:
@@ -525,6 +546,42 @@ class YourTeamAgent2(MultiAgentSearchAgent):
 
         # Find the best action to navigate towards the closest target
         bestAction = self.findBestActionToTarget(gameState, agentIndex, pacmanPosition, closestTarget)
+        return bestAction
+
+    def findBestActionToAvoidOtherAI(self, gameState: GameState, agentIndex: int, pacmanPosition: Tuple[int, int], enemyPosition: Tuple[int, int]) -> str:
+        """
+        Finds the best action to maximize the distance from the other AI when Pac-Man is scared and close to the enemy AI.
+
+        Args:
+            gameState: The current game state.
+            agentIndex: The index of the agent (0 for Pac-Man, 1 for the second agent).
+            pacmanPosition: Pac-Man's current position.
+            enemyPosition: The other AI's current position.
+
+        Returns:
+            The best action to maximize the distance from the other AI.
+        """
+        legalActions = gameState.getLegalActions(agentIndex)
+        maxDistance = -float('inf')
+        bestAction = None
+
+        # Iterate over the legal actions and calculate the distance from the other AI
+        for action in legalActions:
+            # Generate the successor state after taking the action
+            successorGameState = gameState.generateSuccessor(agentIndex, action)
+            
+            # Get Pac-Man's new position after taking the action
+            newPosition = successorGameState.getPacmanPosition(agentIndex)
+            
+            # Calculate the Manhattan distance from the other AI
+            distanceFromAI = manhattanDistance(newPosition, enemyPosition)
+            
+            # Update the best action and maximum distance if the current distance is greater
+            if distanceFromAI > maxDistance:
+                maxDistance = distanceFromAI
+                bestAction = action
+        
+        # Return the best action that maximizes the distance from the other AI
         return bestAction
 
     def findBestActionToTarget(self, gameState: GameState, agentIndex: int, startPosition: Tuple[int, int], targetPosition: Tuple[int, int]) -> str:
