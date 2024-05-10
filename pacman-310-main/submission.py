@@ -265,88 +265,74 @@ import random
 
 class YourTeamAgent(MultiAgentSearchAgent):
   def getAction(self, gameState, agentIndex=0) -> str:
-    """Choose the best action, avoiding other agents or chasing them depending on their state."""
-    # Get the current position of our Pacman agent
-    current_position = gameState.getPacmanPosition(agentIndex)
+        """Choose the best action, avoiding other agents or chasing them depending on their state."""
+        # Get the current position of our Pacman agent
+        current_position = gameState.getPacmanPosition(agentIndex)
 
-    # Get information about the other agent
-    other_index = (agentIndex + 1) % gameState.getNumAgents()
-    other_position = gameState.getPacmanPosition(other_index)
-    other_state = gameState.getPacmanState(other_index)
+        # Get information about the other agent
+        other_index = (agentIndex + 1) % gameState.getNumAgents()
+        other_position = gameState.getPacmanPosition(other_index)
+        other_state = gameState.getPacmanState(other_index)
 
-    # Get capsules and food positions
-    capsules = gameState.getCapsules()
-    food = gameState.getFood().asList()
+        # Get capsules and food positions
+        capsules = gameState.getCapsules()
+        food = gameState.getFood().asList()
 
-    # Retrieve all legal actions
-    legal_actions = gameState.getLegalActions(agentIndex)
+        # Retrieve all legal actions
+        legal_actions = gameState.getLegalActions(agentIndex)
 
-    # Determine whether we are in "getCapsule" mode or "find" mode
-    if capsules:
-        mode = "getCapsule"
-        targets = capsules
-    elif food:
-        mode = "getFood"
-        targets = food
-    else:
-        mode = "random"
-        targets = []
+        # Determine whether we are in "getCapsule" mode or "find" mode
+        if capsules:
+            mode = "getCapsule"
+            targets = capsules
+        elif food:
+            mode = "getFood"
+            targets = food
+        else:
+            mode = "random"
+            targets = []
 
-    # If no valid targets exist, choose a random legal action
-    if not targets:
-        return random.choice(legal_actions) if legal_actions else Directions.STOP
+        # If no valid targets exist, choose a random legal action
+        if not targets:
+            return random.choice(legal_actions) if legal_actions else Directions.STOP
 
-    # If targeting a capsule but the other agent is not vulnerable, avoid them
-    if mode == "getCapsule" or other_state.scaredTimer > 0:
-        # If both agents are in "getCapsule" state
-        if other_state.scaredTimer > 0:
-            # If our agent has a higher scared timer, run away while finding the closest capsule
-            if gameState.getPacmanState(agentIndex).scaredTimer > other_state.scaredTimer:
-                print("here2")
-                farthest_point = self.find_farthest_point(gameState, current_position, other_position)
-                path = self.a_star_search_avoid(gameState, current_position, targets, other_position)
-            else:
-                # If the other agent has a higher scared timer, flee away
-                if other_state.scaredTimer < 2 and other_state.scaredTimer >= 1 and self.other_agent_closer_to_capsule(gameState, agentIndex, other_index):
-                    print("here3")
-                    # Find the farthest point from the other agent
+        # If targeting a capsule but the other agent is not vulnerable, avoid them
+        if mode == "getCapsule" and other_state.scaredTimer > 0:
+            # If both agents are in "getCapsule" state
+                if gameState.getPacmanState(agentIndex).scaredTimer > other_state.scaredTimer:
+                    print("here2")
                     farthest_point = self.find_farthest_point(gameState, current_position, other_position)
                     path = self.a_star_search(gameState, current_position, [farthest_point])
+                    # path = self.a_star_search_avoid(gameState, current_position, targets, other_position)
                 else:
-                  if self.other_agent_closer_to_capsule(gameState, agentIndex, other_index):
-                   print("here5")
-                   farthest_point = self.find_farthest_point(gameState, current_position, other_position)
-                   path = self.a_star_search(gameState, current_position, [farthest_point])
-                  else:
-                    print("here8")
-                    targets = [other_position]
-                    mode = "find"
-                    path = self.a_star_search(gameState, current_position, targets)
-        else:
-            print("here6")
+                    # If the other agent has a higher scared timer, flee away
+                    if other_state.scaredTimer <= 3 and other_state.scaredTimer > 1 and self.other_agent_closer_to_capsule(gameState, agentIndex, other_index):
+                        print("here3")
+                        # Find the farthest point from the other agent
+                        farthest_point = self.find_farthest_point(gameState, current_position, other_position)
+                        path = self.a_star_search(gameState, current_position, [farthest_point])
+                    else:
+                        print("here8")
+                        targets = [other_position]
+                        if util.manhattanDistance(current_position, other_position) <= 3:  # Adjust the distance threshold as needed
+                         path = self.a_star_search(gameState, current_position, targets)
+                        else:
+                         targets = food
+                         mode = "find"
+                         path = self.a_star_search(gameState, current_position, targets)                      
+        elif mode == "getCapsule":
+            print("here10")
             path = self.a_star_search_avoid(gameState, current_position, targets, other_position)
-    else:
-        # If the other agent is vulnerable, chase them
-      if other_state.scaredTimer > gameState.getPacmanState(agentIndex).scaredTimer:
-        print("here7")
-        targets = [other_position]
-        mode = "find"
-        path = self.a_star_search(gameState, current_position, targets)
-      else:
-        print("here9")
-        if other_state.scaredTimer < gameState.getPacmanState(agentIndex).scaredTimer:
-         farthest_point = self.find_farthest_point(gameState, current_position, other_position)
-         path = self.a_star_search(gameState, current_position, [farthest_point])
+        elif gameState.getPacmanState(agentIndex).scaredTimer < other_state.scaredTimer:
+            targets = [other_position]
+            path = self.a_star_search(gameState, current_position, targets)
         else:
-         print("here10")
-         path = self.a_star_search(gameState, current_position, targets)
-
-
-    if path:
-        return path[0]
-    else:
-        # If no path is found, choose a random legal action
-        return random.choice(legal_actions) if legal_actions else Directions.STOP
+            path = self.a_star_search(gameState, current_position, targets)
+        if path:
+            return path[0]
+        else:
+            # If no path is found, choose a random legal action
+            return random.choice(legal_actions) if legal_actions else Directions.STOP
 
   def find_farthest_point(self, gameState, start, other_position):
     """Find the farthest point from the other agent with a minimum cluster of nearby food dots."""
@@ -356,16 +342,26 @@ class YourTeamAgent(MultiAgentSearchAgent):
     walls = gameState.getWalls()
     food = gameState.getFood().asList()
 
-    for x in range(walls.width):
-        for y in range(walls.height):
-            if not walls[x][y]:
-                distance = util.manhattanDistance((x, y), other_position)
-                if distance > max_distance:
-                    # Check nearby food dots within a certain radius
-                    food_count = sum(1 for food_pos in food if util.manhattanDistance((x, y), food_pos) <= 3)
-                    if food_count >= 3 and distance > 6:  # Adjust the cluster and distance thresholds as needed
+    # If the other agent is too far away, focus on finding the food instead
+    if util.manhattanDistance(start, other_position) > 4:  # Adjust the distance threshold as needed
+        for x in range(walls.width):
+            for y in range(walls.height):
+                if not walls[x][y]:
+                    distance = util.manhattanDistance((x, y), start)
+                    if distance > max_distance:
                         max_distance = distance
                         farthest_point = (x, y)
+    else:
+        for x in range(walls.width):
+            for y in range(walls.height):
+                if not walls[x][y]:
+                    distance = util.manhattanDistance((x, y), other_position)
+                    if distance > max_distance:
+                        # Check nearby food dots within a certain radius
+                        food_count = sum(1 for food_pos in food if util.manhattanDistance((x, y), food_pos) <= 3)
+                        if food_count >= 3 and distance > 3:  # Adjust the cluster and distance thresholds as needed
+                            max_distance = distance
+                            farthest_point = (x, y)
     return farthest_point
   def a_star_search(self, gameState, start, targets):
     """A* Search to find the best path to any target."""
@@ -471,12 +467,6 @@ class YourTeamAgent(MultiAgentSearchAgent):
                 heapq.heappush(frontier, (new_cost, neighbor, path + [direction]))
 
         return None
-from util import manhattanDistance
-from game import Directions, Actions
-from pacman import GameState
-from typing import List, Tuple, Deque
-from collections import deque
-import random
 
 from util import manhattanDistance
 from game import Directions, Actions
@@ -676,7 +666,225 @@ class YourTeamAgent2(MultiAgentSearchAgent):
 
         # Return the negative of the closest target distance for minimization
         return -closestTargetDistance
+class YourTeamAgent3(MultiAgentSearchAgent):
+  def getAction(self, gameState, agentIndex=0) -> str:
+        """Choose the best action, avoiding other agents or chasing them depending on their state."""
+        # Get the current position of our Pacman agent
+        current_position = gameState.getPacmanPosition(agentIndex)
 
+        # Get information about the other agent
+        other_index = (agentIndex + 1) % gameState.getNumAgents()
+        other_position = gameState.getPacmanPosition(other_index)
+        other_state = gameState.getPacmanState(other_index)
+
+        # Get capsules and food positions
+        capsules = gameState.getCapsules()
+        food = gameState.getFood().asList()
+
+        # Retrieve all legal actions
+        legal_actions = gameState.getLegalActions(agentIndex)
+
+        # Determine whether we are in "getCapsule" mode or "find" mode
+        if capsules:
+            mode = "getCapsule"
+            targets = capsules
+        elif food:
+            mode = "getFood"
+            targets = food
+        else:
+            mode = "random"
+            targets = []
+
+        # If no valid targets exist, choose a random legal action
+        if not targets:
+            return random.choice(legal_actions) if legal_actions else Directions.STOP
+
+        # If targeting a capsule but the other agent is not vulnerable, avoid them
+        if mode == "getCapsule" and other_state.scaredTimer > 0:
+            # If both agents are in "getCapsule" state
+            if other_state.scaredTimer > 0:
+                # If our agent has a higher scared timer, run away while finding the closest capsule
+                if gameState.getPacmanState(agentIndex).scaredTimer > other_state.scaredTimer:
+                    print("here2")
+                    farthest_point = self.find_farthest_point(gameState, current_position, other_position)
+                    path = self.a_star_search(gameState, current_position, [farthest_point])
+                    # path = self.a_star_search_avoid(gameState, current_position, targets, other_position)
+                else:
+                    # If the other agent has a higher scared timer, flee away
+                    if other_state.scaredTimer <= 3 and other_state.scaredTimer > 1 and self.other_agent_closer_to_capsule(gameState, agentIndex, other_index):
+                        print("here3")
+                        # Find the farthest point from the other agent
+                        farthest_point = self.find_farthest_point(gameState, current_position, other_position)
+                        path = self.a_star_search(gameState, current_position, [farthest_point])
+                    else:
+                        print("here8")
+                        targets = [other_position]
+                        if util.manhattanDistance(current_position, other_position) <= 3:  # Adjust the distance threshold as needed
+                         path = self.a_star_search(gameState, current_position, targets)
+                        else:
+                         targets = food
+                         mode = "find"
+                         path = self.a_star_search(gameState, current_position, targets)
+                        
+            else:
+                print("here6")
+                path = self.a_star_search_avoid(gameState, current_position, targets, other_position)
+        else:
+            # If the other agent is vulnerable, chase them
+            if other_state.scaredTimer > gameState.getPacmanState(agentIndex).scaredTimer:
+                print("here7")
+                targets = [other_position]
+                mode = "find"
+                # Check if the other agent is too far away before chasing
+                if util.manhattanDistance(current_position, other_position) <= 3:  # Adjust the distance threshold as needed
+                    path = self.a_star_search(gameState, current_position, targets)
+                else:
+                    targets = food
+                    mode = "find"
+                    path = self.a_star_search(gameState, current_position, targets)
+            else:
+                    print("here10")
+                    path = self.a_star_search(gameState, current_position, targets)
+
+        if path:
+            return path[0]
+        else:
+            # If no path is found, choose a random legal action
+            return random.choice(legal_actions) if legal_actions else Directions.STOP
+
+  def find_farthest_point(self, gameState, start, other_position):
+    """Find the farthest point from the other agent with a minimum cluster of nearby food dots."""
+    max_distance = float('-inf')
+    farthest_point = None
+
+    walls = gameState.getWalls()
+    food = gameState.getFood().asList()
+
+    # If the other agent is too far away, focus on finding the food instead
+    if util.manhattanDistance(start, other_position) > 4:  # Adjust the distance threshold as needed
+        for x in range(walls.width):
+            for y in range(walls.height):
+                if not walls[x][y]:
+                    distance = util.manhattanDistance((x, y), start)
+                    if distance > max_distance:
+                        max_distance = distance
+                        farthest_point = (x, y)
+    else:
+        for x in range(walls.width):
+            for y in range(walls.height):
+                if not walls[x][y]:
+                    distance = util.manhattanDistance((x, y), other_position)
+                    if distance > max_distance:
+                        # Check nearby food dots within a certain radius
+                        food_count = sum(1 for food_pos in food if util.manhattanDistance((x, y), food_pos) <= 3)
+                        if food_count >= 3 and distance > 3:  # Adjust the cluster and distance thresholds as needed
+                            max_distance = distance
+                            farthest_point = (x, y)
+    return farthest_point
+  def a_star_search(self, gameState, start, targets):
+    """A* Search to find the best path to any target."""
+    if not targets:
+        return None
+
+    walls = gameState.getWalls()
+    food = gameState.getFood().asList()
+
+    def heuristic(pos, goals):
+        # Calculate the minimum Manhattan distance to any food in the cluster
+        return min([util.manhattanDistance(pos, goal) for goal in goals])
+
+    def neighbors(pos):
+        x, y = pos
+        possible_directions = [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]
+        deltas = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+        neighbors = []
+
+        for direction, (dx, dy) in zip(possible_directions, deltas):
+            new_x, new_y = x + dx, y + dy
+            if 0 <= new_x < walls.width and 0 <= new_y < walls.height and not walls[new_x][new_y]:
+                neighbors.append((direction, (new_x, new_y)))
+        return neighbors
+
+    frontier = []
+    heapq.heappush(frontier, (0, start, []))
+    explored = set()
+
+    while frontier:
+        cost, current, path = heapq.heappop(frontier)
+
+        if current in explored:
+            continue
+        explored.add(current)
+
+        if current in targets:
+            return path
+
+        for direction, neighbor in neighbors(current):
+            new_cost = cost + 1 + heuristic(neighbor, targets)
+            heapq.heappush(frontier, (new_cost, neighbor, path + [direction]))
+
+    return None
+  def other_agent_closer_to_capsule(self, gameState, agentIndex, other_index):
+    """Check if the other agent is closer to the same capsule as our agent."""
+    current_position = gameState.getPacmanPosition(agentIndex)
+    other_position = gameState.getPacmanPosition(other_index)
+    capsules = gameState.getCapsules()
+
+    if not capsules:
+        return False
+
+    agent_distance_to_capsules = [util.manhattanDistance(current_position, capsule) for capsule in capsules]
+    other_agent_distance_to_capsules = [util.manhattanDistance(other_position, capsule) for capsule in capsules]
+
+    # Compare distances to all capsules
+    for agent_distance, other_distance in zip(agent_distance_to_capsules, other_agent_distance_to_capsules):
+        if other_distance < agent_distance:
+            return True
+
+    return False
+  
+  def a_star_search_avoid(self, gameState, start, targets, avoid_pos):
+        """A* Search to find the best path to any target, avoiding a specific position."""
+        if not targets:
+            return None
+
+        walls = gameState.getWalls()
+
+        def heuristic(pos, goal):
+            return util.manhattanDistance(pos, goal)
+
+        def neighbors(pos):
+            x, y = pos
+            possible_directions = [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]
+            deltas = [(0, 1), (0, -1), (1, 0), (-1, 0)]
+            neighbors = []
+
+            for direction, (dx, dy) in zip(possible_directions, deltas):
+                new_x, new_y = x + dx, y + dy
+                if 0 <= new_x < walls.width and 0 <= new_y < walls.height and not walls[new_x][new_y]:
+                    if (new_x, new_y) != avoid_pos:
+                        neighbors.append((direction, (new_x, new_y)))
+            return neighbors
+
+        frontier = []
+        heapq.heappush(frontier, (0, start, []))
+        explored = set()
+
+        while frontier:
+            cost, current, path = heapq.heappop(frontier)
+
+            if current in explored:
+                continue
+            explored.add(current)
+
+            if current in targets:
+                return path
+
+            for direction, neighbor in neighbors(current):
+                new_cost = cost + 1 + min([heuristic(neighbor, target) for target in targets])
+                heapq.heappush(frontier, (new_cost, neighbor, path + [direction]))
+
+        return None
 
 
 

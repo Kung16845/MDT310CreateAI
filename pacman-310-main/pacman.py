@@ -439,7 +439,7 @@ def setArgs():
   args['layout'] = layout.getLayout(layout1 )
   zoom = 1.0
   # ความเร็วในการเคลื่อนที่ของ pacman สามารถกำหนดได้ โดยค่ามากขึ้น จะช้าลง
-  frameTime = 0.1
+  frameTime = 0.01
   args['display'] = graphicsDisplay.PacmanGraphics(zoom, frameTime = frameTime)
 
   # Choose a Pacman agent 1
@@ -474,7 +474,7 @@ def setArgs():
   # เวลาที่ให้ agent คิด หน่วยเป็นวินาที
   args['timeout'] = 20
   # ระยะเวลาที่ให้เล่นเกม หน่วยเป็นวินาที
-  args['game_time'] = 90
+  args['game_time'] = 10
   return args
 
 def runGames( layout, pacman,pacman2, display, numGames, catchExceptions=False, timeout=30,game_time = 90 ):
