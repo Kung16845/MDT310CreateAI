@@ -451,8 +451,7 @@ def setArgs():
   # pacmanType = loadAgent("KeyboardAgent", False)
   # pacmanType = loadAgent("ReflexAgent", noKeyboard)
   # สามารถแก้เป็น agent ของทีมตัวเองได้
-  pacmanType = loadAgent("YourTeamAgent", False)
-
+  pacmanType = loadAgent("YourTeamAgent2", False)
   agentOpts = {}
   pacman = pacmanType(**agentOpts) # Instantiate Pacman with agentArgs
   args['pacman'] = pacman
@@ -463,7 +462,7 @@ def setArgs():
   # pacmanType = loadAgent("ReflexAgent", noKeyboard)
 
   # สามารถแก้เป็น agent ของทีมตัวเองได้
-  pacmanType = loadAgent("YourTeamAgent2", False)
+  pacmanType = loadAgent("YourTeamAgent", False)
 
   agentOpts = {}
   pacman = pacmanType(**agentOpts) # Instantiate Pacman with agentArgs
@@ -482,6 +481,7 @@ def runGames( layout, pacman,pacman2, display, numGames, catchExceptions=False, 
   __main__.__dict__['_display'] = display
 
   games = []
+
   rules = []
   for i in range(numGames):
     ## Timeout in seconds for total movement, 
