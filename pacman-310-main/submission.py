@@ -300,7 +300,7 @@ class YourTeamAgent(MultiAgentSearchAgent):
 
         # If targeting a capsule but the other agent is not vulnerable, avoid them
         if mode == "getCapsule" and other_state.scaredTimer > 0:
-                if gameState.getPacmanState(agentIndex).scaredTimer > other_state.scaredTimer:
+                if gameState.getPacmanState(agentIndex).scaredTimer > other_state.scaredTimer and util.manhattanDistance(current_position, other_position) <= 3:  
                     print("here2")
                     farthest_point = self.find_farthest_point(gameState, current_position, other_position)
                     path = self.a_star_search(gameState, current_position, [farthest_point])
@@ -368,7 +368,7 @@ class YourTeamAgent(MultiAgentSearchAgent):
     capsules = gameState.getCapsules()
 
     # Adjust the distance threshold based on the map size
-    distance_threshold = 2 if width * height < 350 else 3
+    distance_threshold = 2 if width * height < 350 else 4
 
     # If the other agent is too close, prioritize finding the closest food cluster while maintaining distance
     if util.manhattanDistance(start, other_position) <= distance_threshold:  # Adjust the distance threshold as needed
