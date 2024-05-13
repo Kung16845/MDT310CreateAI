@@ -439,7 +439,7 @@ def setArgs():
   args['layout'] = layout.getLayout(layout1 )
   zoom = 1.0
   # ความเร็วในการเคลื่อนที่ของ pacman สามารถกำหนดได้ โดยค่ามากขึ้น จะช้าลง
-  frameTime = 0.1
+  frameTime = 0.01
   args['display'] = graphicsDisplay.PacmanGraphics(zoom, frameTime = frameTime)
 
   # Choose a Pacman agent 1
@@ -448,10 +448,10 @@ def setArgs():
   # yellow pacman
   # pacmanType = loadAgent("MinimaxAgent", noKeyboard)
   
-  pacmanType = loadAgent("KeyboardAgent", False)
+  # pacmanType = loadAgent("KeyboardAgent", False)
   # pacmanType = loadAgent("ReflexAgent", noKeyboard)
   # สามารถแก้เป็น agent ของทีมตัวเองได
-  # pacmanType = loadAgent("YourTeamAgent2", False)
+  pacmanType = loadAgent("YourTeamAgent", False)
   agentOpts = {}
   pacman = pacmanType(**agentOpts) # Instantiate Pacman with agentArgs
   args['pacman'] = pacman
@@ -462,7 +462,7 @@ def setArgs():
   # pacmanType = loadAgent("ReflexAgent", noKeyboard)
 
   # สามารถแก้เป็น agent ของทีมตัวเองได้
-  pacmanType = loadAgent("YourTeamAgent", False)
+  pacmanType = loadAgent("YourTeamAgent2", False)
 
   agentOpts = {}
   pacman = pacmanType(**agentOpts) # Instantiate Pacman with agentArgs
@@ -473,7 +473,7 @@ def setArgs():
   # เวลาที่ให้ agent คิด หน่วยเป็นวินาที
   args['timeout'] = 20
   # ระยะเวลาที่ให้เล่นเกม หน่วยเปนวินาท
-  args['game_time'] = 30
+  args['game_time'] = 7
   return args
 
 def runGames( layout, pacman,pacman2, display, numGames, catchExceptions=False, timeout=30,game_time = 90 ):

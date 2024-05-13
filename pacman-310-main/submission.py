@@ -281,13 +281,13 @@ class YourTeamAgent(MultiAgentSearchAgent):
         food = gameState.getFood().asList()
         width, height = self.get_map_size(gameState)
         if ourscore*1.5 > theirscore:
-            distancegap = 8
+            distancegap = 13
         elif ourscore > theirscore:
-            distancegap = 6
+            distancegap = 10
         elif ourscore < theirscore:
-            distancegap = 4
+            distancegap = 6
         else:
-            distancegap = 3
+            distancegap = 5
         # Retrieve all legal actions
         legal_actions = gameState.getLegalActions(agentIndex)
         a = util.manhattanDistance(current_position, other_position) 
@@ -316,7 +316,7 @@ class YourTeamAgent(MultiAgentSearchAgent):
                     # print(farthest_point)
                     path = self.a_star_search_avoid(gameState, current_position, targets, other_position)
                 else:
-                    if other_state.scaredTimer <= distancegap and other_state.scaredTimer > 1 and self.other_agent_closer_to_capsule(gameState, agentIndex, other_index):
+                    if other_state.scaredTimer <= 3 and other_state.scaredTimer > 1 and self.other_agent_closer_to_capsule(gameState, agentIndex, other_index):
                         print("here3")
                         # Find the farthest point from the other agent
                         farthest_point = self.find_farthest_point(gameState, current_position, other_position)
@@ -507,14 +507,14 @@ class YourTeamAgent(MultiAgentSearchAgent):
     theirscore = gameState.getScore(other_index)
 
     # Determine the avoid_range based on the score difference
-    if ourscore * 1.5 > theirscore:
-        avoid_range = 8
-    elif ourscore > theirscore:
-        avoid_range = 5
-    elif ourscore < theirscore:
-        avoid_range = 3
-    else:
-        avoid_range = 2
+    # if ourscore*1.5 > theirscore:
+    #     avoid_range = 8
+    # elif ourscore > theirscore:
+    #     avoid_range = 4
+    # elif ourscore < theirscore:
+    #     avoid_range = 2
+    # else:
+    #     distancegap = 1
 
     if not targets:
         # If there are no targets left, move to a position far away from the current position
@@ -602,12 +602,12 @@ class YourTeamAgent(MultiAgentSearchAgent):
 
     return None
 
-  def a_star_search_avoid_farthest_food(self, gameState, start, targets, avoid_pos, avoid_range=4, food_cluster_threshold=2, cluster_radius=2, agentIndex=0, other_index=1):
+  def a_star_search_avoid_farthest_food(self, gameState, start, targets, avoid_pos, avoid_range=4, food_cluster_threshold=2, cluster_radius=2, agentIndex=0, other_index=0):
     """A* Search to find the best path to any target, avoiding a specific position and prioritizing food farthest from the other agent."""
     walls = gameState.getWalls()
     food = gameState.getFood().asList()
     capsules = gameState.getCapsules()
-
+    other_index = (agentIndex + 1) % gameState.getNumAgents()
     if not targets:
         # If there are no targets left, move to a position far away from the current position
         farthest_position = None
@@ -669,7 +669,7 @@ class YourTeamAgent(MultiAgentSearchAgent):
     their_score = gameState.getScore(other_index)
 
     # If food count is low and the other agent cannot get a score higher than ours, prioritize food farthest from the other agent
-    if food_count <= 10 and their_score <= our_score:
+    if food_count <= 10 and their_score + (food_count*10) <= our_score:
         farthest_food = food_farthest_from_other_agent()
         if farthest_food:
             print("low food winning point")
